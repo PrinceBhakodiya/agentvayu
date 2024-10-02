@@ -47,8 +47,10 @@ class _DriverOnboardState extends State<DriverOnboard>
   // TextEditingController licenseCategory = TextEditingController();
   TextEditingController dlvalid = TextEditingController();
   TextEditingController rcvalid = TextEditingController();
-  TextEditingController vehiclefuel = TextEditingController();
+  // TextEditingController vehiclefuel = TextEditingController();
   TextEditingController vehicleMakermodel = TextEditingController();
+  TextEditingController nameC = TextEditingController();
+  String vehiclefuel = "CNG";
 
   String licenseCategory = "MCWG";
 
@@ -73,7 +75,11 @@ class _DriverOnboardState extends State<DriverOnboard>
   FocusNode dobfocus = FocusNode();
   Future<void> verifyRC() async {
     // Define your API endpoint
-
+    if (mobileNumber.text == "") {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please enter mobile number')));
+      return;
+    }
     const String apiUrl = '${AppConstants.baseUrl}/rcVerify';
 
     // Define your request body, if needed
@@ -143,6 +149,16 @@ class _DriverOnboardState extends State<DriverOnboard>
 
   Future<void> verifyDl(String licenseNumber) async {
     // Define your API endpoint
+    if (mobileNumber.text == "") {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please enter mobile number')));
+      return;
+    }
+    setState(() {
+      _loading = true;
+
+      // verified=tr
+    });
     print(datePickerController.text);
     // datePickerController.text = DateFormat('yyyy-MM-dd').format(DateTime.parse(datePickerController.text));
     DateTime parsedDate =
@@ -238,6 +254,11 @@ class _DriverOnboardState extends State<DriverOnboard>
           const SnackBar(content: Text('Please enter correct mobile number')));
       return;
     }
+    if (nameC.text == "") {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Please enter Name')));
+      return;
+    }
     if (datePickerController.text == "") {
       ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Please enter Date of birth')));
@@ -278,8 +299,9 @@ class _DriverOnboardState extends State<DriverOnboard>
         "drivingLicenseCategory": licenseCategory,
         "gender": gender,
         "drivingLicenseValidUpto": formattedDate2,
+        "name": nameC.text,
         "dob": datePickerController.text,
-        "licenseNumber": formattedDate,
+        "licenseNumber": licenseno.text,
         "mobile": mobileNumber.text
       };
       print('bodyyyyyy');
@@ -347,7 +369,7 @@ class _DriverOnboardState extends State<DriverOnboard>
           const SnackBar(content: Text('Please enter Vehicle Number')));
       return;
     }
-    if (vehiclefuel.text == "") {
+    if (vehiclefuel == "") {
       ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Please enter Vehicle Fuel Type')));
       return;
@@ -367,7 +389,7 @@ class _DriverOnboardState extends State<DriverOnboard>
         "driverAddress": licenseaddress.text,
         "vehicleNumber": vehicleNumber.text,
         "vehicleMakerModel": vehicleMakermodel.text,
-        "vehicleFuelType": vehiclefuel.text,
+        "vehicleFuelType": vehiclefuel,
         "rcValidUpto": formattedDate,
         "mobile": mobileNumber.text
       };
@@ -620,25 +642,31 @@ class _DriverOnboardState extends State<DriverOnboard>
     UtilDialog.showWaiting(context);
     SharedPreferences pref = await SharedPreferences.getInstance();
     String dlUrl = await uploadImage(drivingLicenceFront.pickedImage());
+    String dlUrlBack = await uploadImage(drivingLicenceBack.pickedImage());
+
     String rcUrl = await uploadImage(rCBook.pickedImage());
     String proUrl = await uploadImage(driverPhoto.pickedImage());
-    // String referCode = pref.getString("refer")!;
+    String referCode = pref.getString("refer") ?? "";
     Dio dio = Dio();
     var body = {
       "phone": mobileNumber.text,
       "profileUrl": proUrl ?? "",
-      "upiID": upiID.text ?? "",
       "vehicleType": carType,
-      "refferedBy": "PRI663",
+      "refferedBy": referCode,
       "drivingLicense": dlUrl ?? "",
+      "drivingLicenseBack": dlUrlBack ?? "",
       "registrationCertificate": rcUrl ?? "",
     };
+    try {
+      print(body);
+      var response = await dio.post("${AppConstants.baseUrl}/createUserByAgent",
+          data: body);
+      print(response.statusCode);
+      if (response.statusCode == 200) {
+        print(response.data);
 
-    await dio
-        .post("${AppConstants.baseUrl}/createUserByAgent", data: body)
-        .then(
-      (value) {
-        print(value.data);
+        UtilDialog.hideWaiting(context);
+        Navigator.pop(context);
         Fluttertoast.showToast(
             msg: "Driver Registered Successfully",
             toastLength: Toast.LENGTH_LONG,
@@ -647,9 +675,24 @@ class _DriverOnboardState extends State<DriverOnboard>
             backgroundColor: AppColors.primaryGreen,
             textColor: Colors.white,
             fontSize: 16.0);
-// Fluttertoast()
-      },
-    );
+      } else {
+        print(response.data);
+      }
+    } on DioException catch (e) {
+      print(e.message);
+      print("Error");
+      Fluttertoast.showToast(
+          msg: e.message!,
+          toastLength: Toast.LENGTH_LONG,
+          gravity: ToastGravity.BOTTOM,
+          timeInSecForIosWeb: 1,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+          fontSize: 16.0);
+      print(e.response!.data);
+    } catch (e) {
+      print(e);
+    }
     // Map<String, dynamic> json =
     //     jsonDecode(pref.getString(AppConstants.userDataKey) ?? "");
 
@@ -967,11 +1010,6 @@ class _DriverOnboardState extends State<DriverOnboard>
                                             return;
                                           }
 
-                                          setState(() {
-                                            _loading = true;
-
-                                            // verified=tr
-                                          });
                                           verifyDl(licenseno.text);
                                         },
                                         color: AppColors.primaryGreen,
@@ -1093,6 +1131,36 @@ class _DriverOnboardState extends State<DriverOnboard>
                                       child:
                                           Icon(Icons.insert_drive_file_rounded),
                                     )),
+                              ),
+                              const Vspace(16),
+                              const Text("Driver Name"),
+                              const Vspace(16),
+                              TextField(
+                                keyboardType: TextInputType.text,
+                                cursorColor: AppColors.black,
+                                controller: nameC,
+                                decoration: InputDecoration(
+                                  labelText: "Driver Name",
+                                  // hintText: "",
+                                  contentPadding: const EdgeInsets.symmetric(
+                                      vertical: 12, horizontal: 14),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(4),
+                                    borderSide: const BorderSide(
+                                      color: AppColors
+                                          .primaryGreen, // Customize the outline color
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(4),
+                                    borderSide: const BorderSide(
+                                      color: AppColors
+                                          .primaryGreen, // Customize the focus outline color
+                                    ),
+                                  ),
+                                  focusColor: AppColors.primaryGreen,
+                                  fillColor: AppColors.primaryGreen,
+                                ),
                               ),
                               const Vspace(16),
                               const Text("Driver Address"),
@@ -1584,37 +1652,61 @@ class _DriverOnboardState extends State<DriverOnboard>
                               const Vspace(16),
                               const Text("Vehicle Fuel"),
                               const Vspace(16),
-                              TextField(
-                                keyboardType: TextInputType.streetAddress,
-                                cursorColor: AppColors.black,
-                                controller: vehiclefuel,
-                                decoration: InputDecoration(
-                                    labelText: "Vehicle Fuel",
-                                    // hintText: "",
-                                    contentPadding: const EdgeInsets.symmetric(
-                                        vertical: 12, horizontal: 14),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(4),
-                                      borderSide: const BorderSide(
-                                        color: AppColors
-                                            .primaryGreen, // Customize the outline color
-                                      ),
+                              DropdownButton<String>(
+                                  isExpanded: true,
+                                  items: <DropdownMenuItem<String>>[
+                                    DropdownMenuItem<String>(
+                                      value: 'CNG',
+                                      child: Text('CNG'),
                                     ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(4),
-                                      borderSide: const BorderSide(
-                                        color: AppColors
-                                            .primaryGreen, // Customize the focus outline color
-                                      ),
+                                    DropdownMenuItem<String>(
+                                      value: 'PETROL',
+                                      child: Text('PETROL'),
                                     ),
-                                    focusColor: AppColors.primaryGreen,
-                                    fillColor: AppColors.primaryGreen,
-                                    prefixIcon: const Padding(
-                                      padding: EdgeInsets.all(8.0),
-                                      child: Icon(Icons.pin_drop),
-                                    )),
-                              ),
+                                    DropdownMenuItem<String>(
+                                      value: 'DIESEL',
+                                      child: Text('DIESEL'),
+                                    ),
+                                    // <DropdownMenuItem<String>>(child: Text("Male"),value: 'Male'),
+                                    // <DropdownMenuItem<String>>(child: Text("Female"),value: "Female"),
+                                  ],
+                                  value: vehiclefuel,
+                                  // isExpanded: true, // Optional: Makes the dropdown take the full width of its container
+
+                                  onChanged: (value) {
+                                    setState(() {
+                                      vehiclefuel = value!;
+                                    });
+                                  }),
                               const Vspace(16),
+                              // TextField(
+                              //   keyboardType: TextInputType.streetAddress,
+                              //   cursorColor: AppColors.black,
+                              //   controller: vehiclefuel,
+                              //   decoration: InputDecoration(
+                              //     labelText: "Vehicle Fuel",
+                              //     // hintText: "",
+                              //     contentPadding: const EdgeInsets.symmetric(
+                              //         vertical: 12, horizontal: 14),
+                              //     border: OutlineInputBorder(
+                              //       borderRadius: BorderRadius.circular(4),
+                              //       borderSide: const BorderSide(
+                              //         color: AppColors
+                              //             .primaryGreen, // Customize the outline color
+                              //       ),
+                              //     ),
+                              //     focusedBorder: OutlineInputBorder(
+                              //       borderRadius: BorderRadius.circular(4),
+                              //       borderSide: const BorderSide(
+                              //         color: AppColors
+                              //             .primaryGreen, // Customize the focus outline color
+                              //       ),
+                              //     ),
+                              //     focusColor: AppColors.primaryGreen,
+                              //     fillColor: AppColors.primaryGreen,
+                              //   ),
+                              // ),
+                              // const Vspace(16),
                               const Text("Vehicle Model"),
                               const Vspace(16),
                               TextField(
