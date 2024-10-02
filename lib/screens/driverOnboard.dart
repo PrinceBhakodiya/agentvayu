@@ -620,7 +620,10 @@ class _DriverOnboardState extends State<DriverOnboard>
     UtilDialog.showWaiting(context);
     SharedPreferences pref = await SharedPreferences.getInstance();
     String dlUrl = await uploadImage(drivingLicenceFront.pickedImage());
+        String dlUrlBack = await uploadImage(drivingLicenceBack.pickedImage());
+
     String rcUrl = await uploadImage(rCBook.pickedImage());
+
     String proUrl = await uploadImage(driverPhoto.pickedImage());
     // String referCode = pref.getString("refer")!;
     Dio dio = Dio();
