@@ -85,6 +85,8 @@ class _LoginState extends State<Login> {
                     pref.setString("token", value.data["token"]);
                     pref.setBool("islogin", true);
                     // pref.setBool("name", value.data["agent"]["name"]);
+                    pref.setString(
+                        "name", value.data["agent"]["name"]);
 
                     pref.setString(
                         "refer", value.data["agent"]["referralCode"]);

@@ -1,10 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vayu_agent/core/appcolors.dart';
 import 'package:vayu_agent/screens/driverOnboard.dart';
 
-class Home extends StatelessWidget {
+class Home extends StatefulWidget {
   const Home({super.key});
 
+  @override
+  State<Home> createState() => _HomeState();
+}
+
+class _HomeState extends State<Home> {
+String name="";
+void setName ()async{
+ SharedPreferences pref = await SharedPreferences.getInstance();
+setState(() {
+name = pref.getString("name") ?? "";
+  
+});
+}
+@override
+  void initState() {
+    setName();
+    // TODO: implement initState
+    super.initState();
+       
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -23,6 +44,13 @@ class Home extends StatelessWidget {
             padding: const EdgeInsets.all(16.0),
             child: Text(
               "Vayu Agents ",
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            ),
+          ),
+             Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text(
+              "Hello $name ",
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
           ),
